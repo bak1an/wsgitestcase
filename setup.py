@@ -13,7 +13,7 @@ setup(
     author_email="antonbaklanov@gmail.com",
     license="MIT",
     url="",
-    packages="",
+    py_modules=["wsgitestcase"],
     description="",
     long_description=DESCRIPTION,
     classifiers=[]
