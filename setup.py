@@ -14,7 +14,8 @@ setup(
     license="MIT",
     url="",
     py_modules=["wsgitestcase"],
-    description="",
+    install_requires=["Werkzeug==0.9.4"],
+    description="TestCase that will launch your wsgi/werkzeug application in a separate thread for you",
     long_description=DESCRIPTION,
     classifiers=[]
 )
