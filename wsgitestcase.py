@@ -4,6 +4,7 @@ import time
 import errno
 
 from wsgiref.simple_server import make_server
+from wsgiref.simple_server import WSGIRequestHandler
 
 from werkzeug.wrappers import Request, Response
 
@@ -13,11 +14,17 @@ def helloworld_app(request):
     return Response("hello world")
 
 
+class SilentRequestHandler(WSGIRequestHandler):
+
+    def log_request(self, code=None, size=None):
+        pass
+
+
 class WsgiThread(threading.Thread):
 
     def __init__(self, app, **kwargs):
         self.app = app
-        self.port = 80
+        self.port = 8000
         self.host = "127.0.0.1"
         self.up_and_ready = threading.Event()
         self.error = None
@@ -25,7 +32,8 @@ class WsgiThread(threading.Thread):
 
     def run(self):
         try:
-            self.server = make_server(self.host, self.port, self.app)
+            self.server = make_server(self.host, self.port, self.app,
+                                      handler_class=SilentRequestHandler)
         except Exception as e:
             self.error = e
             return
