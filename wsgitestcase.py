@@ -17,15 +17,20 @@ class WsgiThread(threading.Thread):
 
     def __init__(self, app, **kwargs):
         self.app = app
-        self.port = 8000
+        self.port = 80
         self.host = "127.0.0.1"
         self.up_and_ready = threading.Event()
         self.error = None
         super(WsgiThread, self).__init__(**kwargs)
 
     def run(self):
-        self.server = make_server(self.host, self.port, self.app)
-        self.up_and_ready.set()
+        try:
+            self.server = make_server(self.host, self.port, self.app)
+        except Exception as e:
+            self.error = e
+            return
+        finally:
+            self.up_and_ready.set()
         self.server.serve_forever()
 
     def join(self):
