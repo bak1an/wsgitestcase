@@ -1,5 +1,4 @@
 import threading
-import time
 import errno
 import platform
 
@@ -38,21 +37,29 @@ class WsgiThread(threading.Thread):
 
     def __init__(self, app, **kwargs):
         self.app = app
-        self.port = 8000
         self.host = "127.0.0.1"
+        self.port = None
+        self.ports_range = range(8000, 8010)
         self.up_and_ready = threading.Event()
         self.error = None
+        self.server = None
         super(WsgiThread, self).__init__(**kwargs)
 
     def run(self):
-        try:
-            self.server = make_server(self.host, self.port, self.app,
-                                      handler_class=SilentRequestHandler)
-        except Exception as e:
-            self.error = e
-            return
-        finally:
-            self.up_and_ready.set()
+        for i, p in enumerate(self.ports_range):
+            try:
+                self.server = make_server(self.host, p, self.app,
+                                          handler_class=SilentRequestHandler)
+                self.port = p
+                break
+            except Exception as e:
+                if hasattr(e, 'errno') and e.errno == errno.EADDRINUSE:
+                    if i < (len(self.ports_range) - 1):
+                        continue
+                self.error = e
+                self.up_and_ready.set()
+                return
+        self.up_and_ready.set()
         self.server.serve_forever()
 
     def join(self):
@@ -70,12 +77,11 @@ class WsgiTestCase(unittest.TestCase):
         cls.server_thread = WsgiThread(cls.app)
         cls.server_thread.start()
         cls.server_thread.up_and_ready.wait()
-        cls.host = cls.server_thread.host
-        cls.port = cls.server_thread.port
         if cls.server_thread.error:
             raise cls.server_thread.error
+        cls.host = cls.server_thread.host
+        cls.port = cls.server_thread.port
 
     @classmethod
     def tearDownClass(cls):
         cls.server_thread.join()
-
