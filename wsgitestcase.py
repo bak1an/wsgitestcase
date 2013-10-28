@@ -57,6 +57,7 @@ class WsgiThread(threading.Thread):
 
     def join(self):
         self.server.shutdown()
+        self.server.server_close()
         super(WsgiThread, self).join()
 
 

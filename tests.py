@@ -12,11 +12,11 @@ def goodbye_app(request):
     return Response("goodbye world")
 
 
-#class TestSimpleServer(WsgiTestCase):
-#
-#    def test_simpleserver(self):
-#        r = requests.get("http://%s:%s/" % (self.host, self.port))
-#        self.assertEqual(r.text, "hello world")
+class TestSimpleServer(WsgiTestCase):
+
+    def test_simpleserver(self):
+        r = requests.get("http://%s:%s/" % (self.host, self.port))
+        self.assertEqual(r.text, "hello world")
 
 
 class TestOtherApp(WsgiTestCase):
