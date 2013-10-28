@@ -1,6 +1,12 @@
 import os
+import platform
 
 from setuptools import setup
+
+dependencies = ["Werkzeug==0.9.4"]
+
+if platform.python_version() < '2.7':
+    dependencies.append("unittest2")
 
 DESCRIPTION = ""
 with open(os.path.join(os.path.dirname(__file__), 'README.rst'), 'r') as f:
@@ -14,7 +20,7 @@ setup(
     license="MIT",
     url="",
     py_modules=["wsgitestcase"],
-    install_requires=["Werkzeug==0.9.4"],
+    install_requires=dependencies,
     description="TestCase that will launch your wsgi/werkzeug application in a separate thread for you",
     long_description=DESCRIPTION,
     classifiers=[]

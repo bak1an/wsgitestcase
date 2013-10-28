@@ -1,12 +1,26 @@
 import threading
-import unittest
 import time
 import errno
+import platform
 
 from wsgiref.simple_server import make_server
 from wsgiref.simple_server import WSGIRequestHandler
 
 from werkzeug.wrappers import Request, Response
+
+
+def get_cool_unittest():
+    if platform.python_version() < '2.7':
+        try:
+            return __import__('unittest2')
+        except ImportError:
+            print("Not enough unittest2")
+            raise
+    else:
+        return __import__('unittest')
+
+
+unittest = get_cool_unittest()
 
 
 @Request.application
@@ -48,7 +62,7 @@ class WsgiThread(threading.Thread):
 
 class WsgiTestCase(unittest.TestCase):
 
-    app = helloworld_app
+    app = staticmethod(helloworld_app)
 
     @classmethod
     def setUpClass(cls):
