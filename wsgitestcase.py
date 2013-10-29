@@ -58,7 +58,7 @@ class WsgiThread(threading.Thread):
                         continue
                 self.error = e
                 self.up_and_ready.set()
-                return
+                return  # ResourceWarning: unclosed <socket.socket object, fd=4, family=2, type=1, proto=0>
         self.up_and_ready.set()
         self.server.serve_forever()
 

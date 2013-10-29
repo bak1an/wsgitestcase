@@ -18,7 +18,7 @@ setup(
     author="Anton Baklanov",
     author_email="antonbaklanov@gmail.com",
     license="MIT",
-    url="",
+    url="https://github.com/bak1an/wsgitestcase",
     py_modules=["wsgitestcase"],
     install_requires=dependencies,
     description="TestCase that will launch your wsgi/werkzeug application in a separate thread for you",

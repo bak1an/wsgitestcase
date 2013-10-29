@@ -29,26 +29,41 @@ class TestOtherApp(WsgiTestCase):
         self.assertEqual(r.text, "goodbye world")
 
 
-class TestPortsRange(unittest.TestCase):
+class TestPortSelect(unittest.TestCase):
 
     def setUp(self):
         self.open_sockets = []
-        self.addCleanup(self.cleanup_sockets)
+        self.threads = []
+        self.addCleanup(self.cleanup)
 
-    def cleanup_sockets(self):
+    def cleanup(self):
         for s in self.open_sockets:
             s.close()
+        for t in self.threads:
+            t.join()
 
     def listen_on(self, port):
         pass
 
-    def test_nobusy(self):
-        self.t = WsgiThread(goodbye_app)
-        self.assertIsNone(self.t.port)
-        self.t.start()
-        self.t.up_and_ready.wait()
-        self.addCleanup(self.t.join)
-        self.assertEqual(self.t.port, 8000)
+    def test_one_server(self):
+        t = WsgiThread(goodbye_app)
+        self.threads.append(t)
+        self.assertIsNone(t.port)
+        t.start()
+        t.up_and_ready.wait()
+        self.assertEqual(t.port, 8000)
+
+    def test_two_servers(self):
+        t1 = WsgiThread(goodbye_app)
+        t2 = WsgiThread(goodbye_app)
+        self.threads.append(t1)
+        self.threads.append(t2)
+        t1.start()
+        t2.start()
+        t1.up_and_ready.wait()
+        t2.up_and_ready.wait()
+        self.assertEqual(t1.port, 8000)
+        self.assertEqual(t2.port, 8001)
 
 
 if __name__ == '__main__':
