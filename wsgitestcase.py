@@ -4,6 +4,7 @@ import platform
 
 from wsgiref.simple_server import make_server
 from wsgiref.simple_server import WSGIRequestHandler
+from wsgiref.simple_server import WSGIServer
 
 from werkzeug.wrappers import Request, Response
 
@@ -33,6 +34,16 @@ class SilentRequestHandler(WSGIRequestHandler):
         pass
 
 
+class ResourceFairServer(WSGIServer):
+
+    def server_bind(self):
+        try:
+            WSGIServer.server_bind(self)  # old-style classes here
+        except Exception as e:
+            self.socket.close()
+            raise
+
+
 class WsgiThread(threading.Thread):
 
     def __init__(self, app, **kwargs):
@@ -49,7 +60,8 @@ class WsgiThread(threading.Thread):
         for i, p in enumerate(self.ports_range):
             try:
                 self.server = make_server(self.host, p, self.app,
-                                          handler_class=SilentRequestHandler)
+                                          handler_class=SilentRequestHandler,
+                                          server_class=ResourceFairServer)
                 self.port = p
                 break
             except Exception as e:
@@ -58,7 +70,7 @@ class WsgiThread(threading.Thread):
                         continue
                 self.error = e
                 self.up_and_ready.set()
-                return  # ResourceWarning: unclosed <socket.socket object, fd=4, family=2, type=1, proto=0>
+                return
         self.up_and_ready.set()
         self.server.serve_forever()
 
