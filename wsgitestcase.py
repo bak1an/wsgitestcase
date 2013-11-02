@@ -1,12 +1,14 @@
 import threading
 import errno
 import platform
+import socket
 
 from wsgiref.simple_server import make_server
 from wsgiref.simple_server import WSGIRequestHandler
 from wsgiref.simple_server import WSGIServer
 
 from werkzeug.wrappers import Request, Response
+from werkzeug.wsgi import SharedDataMiddleware
 
 
 def get_cool_unittest():
@@ -28,6 +30,15 @@ def helloworld_app(request):
     return Response("hello world")
 
 
+@Request.application
+def all_404(request):
+    return Response("Nothing here", status=404)
+
+
+def get_static_files_app(base_path):
+    return SharedDataMiddleware(all_404, {'/': base_path})
+
+
 class SilentRequestHandler(WSGIRequestHandler):
 
     def log_request(self, code=None, size=None):
@@ -39,7 +50,7 @@ class ResourceFairServer(WSGIServer):
     def server_bind(self):
         try:
             WSGIServer.server_bind(self)  # old-style classes here
-        except Exception as e:
+        except socket.error:
             self.socket.close()
             raise
 
@@ -64,7 +75,7 @@ class WsgiThread(threading.Thread):
                                           server_class=ResourceFairServer)
                 self.port = p
                 break
-            except Exception as e:
+            except socket.error as e:
                 if hasattr(e, 'errno') and e.errno == errno.EADDRINUSE:
                     if i < (len(self.ports_range) - 1):
                         continue
@@ -93,6 +104,7 @@ class WsgiTestCase(unittest.TestCase):
             raise cls.server_thread.error
         cls.host = cls.server_thread.host
         cls.port = cls.server_thread.port
+        cls.url = "http://%s:%s/" % (cls.host, cls.port)
 
     @classmethod
     def tearDownClass(cls):

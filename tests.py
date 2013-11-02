@@ -1,11 +1,17 @@
 import requests
 import socket
+import os
+
 from wsgitestcase import WsgiTestCase, WsgiThread
 from wsgitestcase import get_cool_unittest
 from werkzeug.wrappers import Request, Response
+from wsgitestcase import all_404
+from wsgitestcase import get_static_files_app
 
 
 unittest = get_cool_unittest()
+
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 @Request.application
@@ -81,6 +87,34 @@ class TestPortSelect(unittest.TestCase):
             self.listen_on(port)
         with self.assertRaises(socket.error):
             self.run_server_thread()
+
+
+class Test404App(WsgiTestCase):
+
+    app = staticmethod(all_404)
+
+    def test_404_app(self):
+        r = requests.get(self.url)
+        self.assertEqual(r.status_code, 404)
+        self.assertEqual(r.text, "Nothing here")
+        r2 = requests.get(self.url + "/some/other/path")
+        self.assertEqual(r2.status_code, 404)
+        self.assertEqual(r2.text, "Nothing here")
+
+
+class TestStaticFilesApp(WsgiTestCase):
+
+    app = staticmethod(get_static_files_app(CURRENT_DIR))
+
+    def test_static_files_app(self):
+        r = requests.get(self.url + "setup.py")
+        self.assertEqual(r.status_code, 200)
+        with open("setup.py", "r") as f:
+            self.assertEqual(r.text, f.read())
+        r2 = requests.get(self.url)
+        self.assertEqual(r2.status_code, 404)
+        r3 = requests.get(self.url + "something")
+        self.assertEqual(r3.status_code, 404)
 
 if __name__ == '__main__':
     unittest.main()
