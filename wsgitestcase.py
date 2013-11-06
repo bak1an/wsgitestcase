@@ -3,7 +3,6 @@ import errno
 import platform
 import socket
 
-from wsgiref.simple_server import make_server
 from wsgiref.simple_server import WSGIRequestHandler
 from wsgiref.simple_server import WSGIServer
 
@@ -16,7 +15,6 @@ def get_cool_unittest():
         try:
             return __import__('unittest2')
         except ImportError:
-            print("Not enough unittest2")
             raise
     else:
         return __import__('unittest')
@@ -55,6 +53,19 @@ class ResourceFairServer(WSGIServer):
             raise
 
 
+class LoggingMiddleware(object):
+
+    def __init__(self, app, request_lists):
+        self.app = app
+        self.request_lists = request_lists
+
+    def __call__(self, environ, start_response):
+#        req = Request(environ, shallow=True)
+#        for lst in self.request_lists:
+#            lst.append(req)
+        return self.app(environ, start_response)
+
+
 class WsgiThread(threading.Thread):
 
     def __init__(self, app, **kwargs):
@@ -65,23 +76,28 @@ class WsgiThread(threading.Thread):
         self.up_and_ready = threading.Event()
         self.error = None
         self.server = None
+        self.request_lists = []
         super(WsgiThread, self).__init__(**kwargs)
 
     def run(self):
         for i, p in enumerate(self.ports_range):
             try:
-                self.server = make_server(self.host, p, self.app,
-                                          handler_class=SilentRequestHandler,
-                                          server_class=ResourceFairServer)
+                self.server = ResourceFairServer((self.host, p),
+                                                 SilentRequestHandler)
+                self.server.set_app(
+                    LoggingMiddleware(self.app, self.request_lists))
                 self.port = p
                 break
             except socket.error as e:
-                if hasattr(e, 'errno') and e.errno == errno.EADDRINUSE:
+                if e.errno == errno.EADDRINUSE:
                     if i < (len(self.ports_range) - 1):
                         continue
                 self.error = e
                 self.up_and_ready.set()
                 return
+            except:
+                self.up_and_ready.set()
+                raise
         self.up_and_ready.set()
         self.server.serve_forever()
 
@@ -90,10 +106,17 @@ class WsgiThread(threading.Thread):
         self.server.server_close()
         super(WsgiThread, self).join()
 
+    def log_requests(self, lst):
+        self.request_lists.append(lst)
+
 
 class WsgiTestCase(unittest.TestCase):
 
     app = staticmethod(helloworld_app)
+
+    def setUp(self):
+        self.requests = []
+        self.server_thread.log_requests(self.requests)
 
     @classmethod
     def setUpClass(cls):

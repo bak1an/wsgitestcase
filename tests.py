@@ -1,6 +1,7 @@
 import requests
 import socket
 import os
+import sys
 
 from wsgitestcase import WsgiTestCase, WsgiThread
 from wsgitestcase import get_cool_unittest
@@ -13,6 +14,12 @@ unittest = get_cool_unittest()
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+PY3 = sys.version_info[0] == 3
+
+b = lambda s: s
+if PY3:
+    b = lambda s: s.encode("utf-8")
+
 
 @Request.application
 def goodbye_app(request):
@@ -24,6 +31,8 @@ class TestSimpleServer(WsgiTestCase):
     def test_simpleserver(self):
         r = requests.get("http://%s:%s/" % (self.host, self.port))
         self.assertEqual(r.text, "hello world")
+        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(self.requests[0].path, "/")
 
 
 class TestOtherApp(WsgiTestCase):
@@ -33,6 +42,8 @@ class TestOtherApp(WsgiTestCase):
     def test_simpleserver(self):
         r = requests.get("http://%s:%s/" % (self.host, self.port))
         self.assertEqual(r.text, "goodbye world")
+        self.assertEqual(len(self.requests), 1)
+        self.assertEqual(self.requests[0].path, "/")
 
 
 class TestPortSelect(unittest.TestCase):
@@ -41,6 +52,7 @@ class TestPortSelect(unittest.TestCase):
         self.open_sockets = []
         self.threads = []
         self.addCleanup(self.cleanup)
+        super(TestPortSelect, self).setUp()
 
     def cleanup(self):
         for s in self.open_sockets:
@@ -100,6 +112,9 @@ class Test404App(WsgiTestCase):
         r2 = requests.get(self.url + "/some/other/path")
         self.assertEqual(r2.status_code, 404)
         self.assertEqual(r2.text, "Nothing here")
+        self.assertEqual(len(self.requests), 2)
+        self.assertEqual(self.requests[0].path, "/")
+        self.assertEqual(self.requests[1].path, "/some/other/path")
 
 
 class TestStaticFilesApp(WsgiTestCase):
@@ -115,6 +130,26 @@ class TestStaticFilesApp(WsgiTestCase):
         self.assertEqual(r2.status_code, 404)
         r3 = requests.get(self.url + "something")
         self.assertEqual(r3.status_code, 404)
+        self.assertEqual(len(self.requests), 3)
+        self.assertEqual(self.requests[0].path, "/setup.py")
+        self.assertEqual(self.requests[1].path, "/")
+        self.assertEqual(self.requests[2].path, "/something")
+
+
+class TestRequestBody(WsgiTestCase):
+
+    @staticmethod
+    def app(environ, start_response):
+        headers = [('Content-type', 'text/plain')]
+        data = environ['wsgi.input']
+        print(environ['CONTENT_LENGTH'])
+        start_response('200 OK', headers)
+        return [b(''), b('100')]
+
+    def test_body(self):
+        res = requests.post(self.url, data="some input goes here")
+        self.assertEqual(res.text, "100")
+
 
 if __name__ == '__main__':
     unittest.main()
