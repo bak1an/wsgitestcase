@@ -9,6 +9,10 @@ from wsgiref.simple_server import WSGIServer
 from werkzeug.wrappers import Request, Response
 from werkzeug.wsgi import SharedDataMiddleware
 
+try:
+    from io import BytesIO as IO
+except ImportError:
+    from StringIO import StringIO as IO
 
 def get_cool_unittest():
     if platform.python_version() < '2.7':
@@ -42,6 +46,33 @@ class SilentRequestHandler(WSGIRequestHandler):
     def log_request(self, code=None, size=None):
         pass
 
+    def handle(self):
+        import ipdb
+        ipdb.set_trace()
+        print("1")
+        self.request.settimeout(None)
+        print("2")
+        try:
+            print("3")
+            req = self.request.recv(1024)
+        except socket.timeout:
+            print("4")
+            print("wtf is going on here")
+        self.request.settimeout(1)
+        print("5")
+        while True:
+            try:
+                data = self.request.recv(1024)
+                print("6")
+            except socket.timeout:
+                data = None
+            if not data:
+                break
+            req += data
+        print("return")
+        self.rfile = IO(req)
+        SilentRequestHandler.handle(self)
+
 
 class ResourceFairServer(WSGIServer):
 
@@ -60,9 +91,9 @@ class LoggingMiddleware(object):
         self.request_lists = request_lists
 
     def __call__(self, environ, start_response):
-#        req = Request(environ, shallow=True)
-#        for lst in self.request_lists:
-#            lst.append(req)
+        req = Request(environ, shallow=True)
+        for lst in self.request_lists:
+            lst.append(req)
         return self.app(environ, start_response)
 
 
@@ -121,6 +152,7 @@ class WsgiTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.server_thread = WsgiThread(cls.app)
+        cls.server_thread.daemon = True
         cls.server_thread.start()
         cls.server_thread.up_and_ready.wait()
         if cls.server_thread.error:

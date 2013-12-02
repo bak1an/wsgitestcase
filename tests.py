@@ -1,3 +1,5 @@
+import time
+import traceback
 import requests
 import socket
 import os
@@ -142,7 +144,7 @@ class TestRequestBody(WsgiTestCase):
     def app(environ, start_response):
         headers = [('Content-type', 'text/plain')]
         data = environ['wsgi.input']
-        print(environ['CONTENT_LENGTH'])
+        print(data.read())
         start_response('200 OK', headers)
         return [b(''), b('100')]
 
@@ -150,6 +152,26 @@ class TestRequestBody(WsgiTestCase):
         res = requests.post(self.url, data="some input goes here")
         self.assertEqual(res.text, "100")
 
+
+import time
+import threading
+
+def stacktraces():
+    code = []
+    for threadId, stack in sys._current_frames().items():
+        code.append("\n# ThreadID: %s" % threadId)
+        for filename, lineno, name, line in traceback.extract_stack(stack):
+            code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
+            if line:
+                code.append("  %s" % (line.strip()))
+    print("\n".join(code))
+
+def dumper():
+    while True:
+        time.sleep(5)
+        stacktraces()
+
+threading.Thread(target=dumper).start()
 
 if __name__ == '__main__':
     unittest.main()
