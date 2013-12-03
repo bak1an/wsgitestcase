@@ -23,6 +23,11 @@ setup(
     install_requires=dependencies,
     description="TestCase that will launch your wsgi/werkzeug application in a separate thread for you",
     long_description=DESCRIPTION,
-    classifiers=[]
+    classifiers=[
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 3",
+        "Topic :: Software Development :: Testing"
+    ]
 )
 
