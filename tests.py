@@ -1,5 +1,3 @@
-import time
-import traceback
 import requests
 import socket
 import os

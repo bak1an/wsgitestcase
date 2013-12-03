@@ -14,6 +14,7 @@ try:
 except ImportError:
     from StringIO import StringIO as IO
 
+
 def get_cool_unittest():
     if platform.python_version() < '2.7':
         try:
