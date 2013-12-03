@@ -143,35 +143,23 @@ class TestRequestBody(WsgiTestCase):
     @staticmethod
     def app(environ, start_response):
         headers = [('Content-type', 'text/plain')]
-        data = environ['wsgi.input']
-        print(data.read())
+        data = environ['wsgi.input'].read()
+        data_len = str(len(data))
         start_response('200 OK', headers)
-        return [b(''), b('100')]
+        return [b(''), b(data_len)]
 
     def test_body(self):
-        res = requests.post(self.url, data="some input goes here")
-        self.assertEqual(res.text, "100")
+        data = b("some input goes here")
+        res = requests.post(self.url, data=data)
+        self.assertEqual(res.text, str(len(data)))
+        self.assertEqual(data, self.requests[0].get_data())
 
+    def test_long_body(self):
+        data = b("some input goes here" * 1024)
+        res = requests.post(self.url, data=data)
+        self.assertEqual(res.text, str(len(data)))
+        self.assertEqual(data, self.requests[0].get_data())
 
-import time
-import threading
-
-def stacktraces():
-    code = []
-    for threadId, stack in sys._current_frames().items():
-        code.append("\n# ThreadID: %s" % threadId)
-        for filename, lineno, name, line in traceback.extract_stack(stack):
-            code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
-            if line:
-                code.append("  %s" % (line.strip()))
-    print("\n".join(code))
-
-def dumper():
-    while True:
-        time.sleep(5)
-        stacktraces()
-
-threading.Thread(target=dumper).start()
 
 if __name__ == '__main__':
     unittest.main()

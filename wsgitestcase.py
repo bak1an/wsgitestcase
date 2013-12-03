@@ -47,31 +47,19 @@ class SilentRequestHandler(WSGIRequestHandler):
         pass
 
     def handle(self):
-        import ipdb
-        ipdb.set_trace()
-        print("1")
-        self.request.settimeout(None)
-        print("2")
-        try:
-            print("3")
-            req = self.request.recv(1024)
-        except socket.timeout:
-            print("4")
-            print("wtf is going on here")
-        self.request.settimeout(1)
-        print("5")
-        while True:
-            try:
-                data = self.request.recv(1024)
-                print("6")
-            except socket.timeout:
-                data = None
-            if not data:
-                break
-            req += data
-        print("return")
+        req = self.request.recv(1024)
+        if len(req) == 1024:
+            self.request.settimeout(1)
+            while True:
+                try:
+                    data = self.request.recv(1024)
+                except socket.timeout:
+                    data = None
+                if not data:
+                    break
+                req += data
         self.rfile = IO(req)
-        SilentRequestHandler.handle(self)
+        WSGIRequestHandler.handle(self)
 
 
 class ResourceFairServer(WSGIServer):
@@ -91,7 +79,11 @@ class LoggingMiddleware(object):
         self.request_lists = request_lists
 
     def __call__(self, environ, start_response):
-        req = Request(environ, shallow=True)
+        environ_clone = environ.copy()
+        data_position = environ['wsgi.input'].tell()
+        environ_clone['wsgi.input'] = IO(environ['wsgi.input'].read())
+        environ['wsgi.input'].seek(data_position)
+        req = Request(environ_clone)
         for lst in self.request_lists:
             lst.append(req)
         return self.app(environ, start_response)
