@@ -4,7 +4,7 @@
    :target: https://travis-ci.org/bak1an/wsgitestcase
 
 TestCase that will launch your wsgi/werkzeug application in a separate thread
-for you (using *setUp* and *tearDown* methods).
+for you (using *setUpClass* and *tearDownClass* methods).
 
 Inspired by Django's LiveServerTestCase.
 
