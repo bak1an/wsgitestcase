@@ -3,7 +3,7 @@ import platform
 
 from setuptools import setup
 
-dependencies = ["Werkzeug==0.9.4"]
+dependencies = ["Werkzeug==0.15.3"]
 
 if platform.python_version() < '2.7':
     dependencies.append("unittest2")
